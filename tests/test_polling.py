@@ -4,6 +4,8 @@ import asyncio
 from datetime import UTC, datetime
 
 import pytest
+from yuki_plugin_sdk.testing import FakePluginContext
+
 from github_monitor.config import (
     GitHubMonitorConfig,
     NotificationTargetConfig,
@@ -18,8 +20,6 @@ from github_monitor.state import (
     load_repository_state,
     record_queue_diagnostic,
 )
-
-from yuki_plugin_sdk.testing import FakePluginContext
 
 
 class StubClient:

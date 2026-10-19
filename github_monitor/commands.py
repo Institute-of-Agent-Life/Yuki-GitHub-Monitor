@@ -7,7 +7,6 @@ from datetime import UTC, datetime
 from typing import cast
 
 from pydantic import BaseModel, Field
-
 from yuki_plugin_sdk.context import PluginContext
 from yuki_plugin_sdk.models import NotificationTarget, StrictModel
 from yuki_plugin_sdk.results import CommandResult

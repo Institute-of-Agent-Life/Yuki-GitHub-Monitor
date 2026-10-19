@@ -4,6 +4,9 @@ import copy
 from datetime import UTC, datetime
 
 import pytest
+from pydantic import ValidationError
+from yuki_plugin_sdk.testing import FakePluginContext
+
 from github_monitor.models import (
     ActivationState,
     DeliveryUnit,
@@ -27,9 +30,6 @@ from github_monitor.state import (
     record_queue_diagnostic,
     validate_queue_transition,
 )
-from pydantic import ValidationError
-
-from yuki_plugin_sdk.testing import FakePluginContext
 
 NOW = datetime(2026, 8, 27, tzinfo=UTC)
 FINGERPRINT = "a" * 64

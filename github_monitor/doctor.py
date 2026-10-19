@@ -10,8 +10,6 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from yuki.config import Settings
-
 from .models import QueueState, RepositoryState
 from .state import (
     DIAGNOSTIC_NAMESPACE,
@@ -333,10 +331,10 @@ def _status_count(
     return int((row or (0,))[0])
 
 
-async def _run(*, apply_import: bool) -> int:
+async def _run(*, database_url: str, apply_import: bool) -> int:
     report = await asyncio.to_thread(
         inspect_database,
-        Settings().database_url,
+        database_url,
         apply_import=apply_import,
     )
     print(json.dumps(asdict(report), ensure_ascii=False, sort_keys=True))
@@ -346,13 +344,20 @@ async def _run(*, apply_import: bool) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Inspect stopped GitHub Monitor queue state")
     parser.add_argument(
+        "--database-url",
+        required=True,
+        help="Host SQLite URL; relative paths resolve from the current working directory",
+    )
+    parser.add_argument(
         "--apply-legacy-import",
         action="store_true",
         help="persist deterministic legacy queue imports before checking",
     )
     args = parser.parse_args()
     try:
-        return asyncio.run(_run(apply_import=bool(args.apply_legacy_import)))
+        return asyncio.run(
+            _run(database_url=args.database_url, apply_import=bool(args.apply_legacy_import))
+        )
     except (OSError, sqlite3.DatabaseError, ValueError) as exc:
         print(
             json.dumps(

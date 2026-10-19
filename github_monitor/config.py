@@ -6,7 +6,6 @@ import re
 from typing import Literal, Self
 
 from pydantic import Field, field_validator, model_validator
-
 from yuki_plugin_sdk.models import StrictModel
 
 _REPOSITORY = re.compile(r"^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$")

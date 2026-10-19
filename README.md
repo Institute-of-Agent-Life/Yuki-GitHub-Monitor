@@ -1,38 +1,45 @@
-# GitHub Monitor 使用说明
+# Yuki GitHub Monitor
 
-GitHub Monitor 是 Yuki 的只读 GitHub 仓库管家。它定时读取一个或多个仓库的新事件，将中文
-摘要、Push/Release 卡片和可选的 Yuki 自然点评投递到指定 QQ 群或私聊。
+Yuki 的 GitHub 仓库监控插件。定时读取仓库事件，把中文摘要、Push / Release 卡片和可选的 Agent 任务投递到 Yuki 的群聊或私聊。
 
-插件不会修改 GitHub 仓库，也不会把 GitHub 返回的标题、评论或提交信息当成可信指令。
+本仓库从 [Yuki](https://github.com/YuanYeYouTao/Yuki) 的 `plugins/github-monitor` 独立提取，保留原插件历史和 AGPL-3.0-only 许可证。插件 ID 仍为 `github-monitor`，迁移代码目录不更换已保存的配置、队列、授权或通知回执。
 
 ## 功能
 
-- 同时监控多个公开或私有仓库，每个仓库可以投递到多个群聊或私聊。
-- 支持 Push、Pull Request、Issue、Comment、Review、Release、Discussion、Fork、Star 等事件。
-- Push 会补充 Compare 数据并生成 1200×630 暗色 PNG 卡片，展示分支、提交、文件与增删行数。
-- Release 使用同风格 PNG 卡片，展示版本、类型、目标分支、附件数量和发布说明。
-- 中文事件描述、稳定事件去重、条件请求、Rate Limit 感知和失败退避。
-- 首次启用默认只建立当前基线，不补发历史事件。
-- 原始 GitHub event ID 进入 CAS/WAL 队列；每个目标完成或明确跳过后才推进 committed cursor。
-- 相邻的 Create/Delete 与 Watch/Fork 可安全合批；Push、Release、PR、Issue、评论和 Review
-  始终保持单例。
-- 可以让 Yuki 根据仓库事件自然点评，也可以只发送确定性文本和卡片。
+- 同时监控多个公开或私有仓库，并向多个目标投递。
+- 支持 Push、Pull Request、Issue、Comment、Review、Release、Discussion、Fork、Star。
+- Push 和 Release 生成 1200×630 PNG 卡片；其他事件使用中文文本摘要。
+- 首次启用建立当前基线；条件请求、事件去重和持久队列保留原游标与目标快照。
+- 已接纳队列逐步排空，不必等待下一次 GitHub 轮询；已完成目标沿原回执恢复。
+- 可选择让 Yuki 处理事件，也可只发送文本和卡片。
 
 ## 运行要求
 
-- Yuki `>=3.9.0,<4.0`
-- Plugin API `6.0`
-- Bot 可以访问 `https://api.github.com`
-- 私有仓库必须提供可读取目标仓库的 GitHub Token
+- Python 3.12，Yuki `>=3.9.0,<4.0`，Plugin API `6.0`。
+- Host 可以访问 `api.github.com`，并提供 Pillow、时区资料和中文字体。Yuki 镜像已包含这些依赖。
+- 公开仓库可匿名读取。私有仓库需要可读取目标仓库的 GitHub Token；推荐 Fine-grained Token，仅授权所需仓库的 Metadata / Contents 读取权限。
 
-公开仓库不配置 Token 也能使用，但匿名 GitHub API 的调用额度更低。推荐使用 Fine-grained
-Personal Access Token，只授权需要监控的仓库，并仅授予读取 Metadata 与 Contents 所需权限。
+## 安装
 
-## 快速启用
+在 **Yuki Host** 的插件目录中克隆本仓库，目录内应直接包含 `plugin.toml` 和 `github_monitor/`：
 
-### 1. 配置环境变量
+```bash
+git clone https://github.com/Institute-of-Agent-Life/Yuki-GitHub-Monitor.git plugins/github-monitor
+```
 
-在仓库根目录的 `.env` 中加入：
+已有内置版本时，在停 Bot 后用此仓库替换原代码目录，保留 Host 的数据和配置。不要同时加载两份 `github-monitor`。容器运行用户须能读取源码、遍历目录；插件目录挂载仍沿 Host 的现有部署配置。
+
+归档解包若受到 `umask 077` 影响，可只修正代码目录的读取和遍历权限：
+
+```bash
+chmod a+rx plugins/github-monitor
+chmod -R a+rX plugins/github-monitor/github_monitor
+chmod a+r plugins/github-monitor/plugin.toml plugins/github-monitor/doctor.py
+```
+
+Token 继续保存在 Host Secret 配置中，不放入上述源码目录。
+
+在 **Host 的 `.env`** 配置：
 
 ```dotenv
 PLUGIN_SYSTEM_ENABLED=true
@@ -40,251 +47,124 @@ PLUGIN_DIRECT_COMMAND_BINDINGS={"/github":"github-monitor:github"}
 YUKI_PLUGIN__GITHUB_MONITOR__GITHUB_TOKEN=github_pat_replace_with_your_token
 ```
 
-Token 可省略，但不要把真实 Token 写入 `plugin.toml`、提交到 Git、通过 QQ 命令发送或发到群聊。
-插件只能通过 Host 的 Secret 通道使用它，Token 不会进入普通插件配置、Prompt、工具结果或日志。
+Token 可省略。已有直达命令时，将 `/github` 合并进原 JSON。真实 Token 由 Host Secret 通道提供，不存入本仓库、插件普通配置或聊天消息。
 
-如果已有其他直达命令，应合并到同一个 JSON 对象，例如：
+更新环境或挂载后，按 Host 部署流程只重启 Bot，再执行在线管理命令。
 
-```dotenv
-PLUGIN_DIRECT_COMMAND_BINDINGS={"/github":"github-monitor:github","/monitor":"subscription-monitor:monitor"}
-```
-
-### 2. 重建 Bot
-
-只重建 Bot 可以保留 QQ 网关容器与登录状态；沿用部署时的全部 Compose 参数：
-
-在线 CLI 需要通过环境提供已有操作员的 `YUKI_CONTROL_CREDENTIAL`，并令 `WEBUI_ORIGIN` 指向实际 Host；不要在命令行写凭据。批准前审阅下面列出的 Manifest 权限，CLI 不传 `--permission` 只批准空集合。
+Host 在线管理 CLI 使用环境中的 `YUKI_CONTROL_CREDENTIAL`，`ADMIN_API_URL` 指向实际管理 API；凭据不要放在命令行参数中。在 Host 环境执行：
 
 ```bash
-docker compose up -d --no-deps --force-recreate bot
+yuki plugin validate plugins/github-monitor
+yuki plugin discover
+yuki plugin inspect github-monitor
+yuki plugin approve github-monitor --permission background.worker --permission network.http.allowlisted --permission storage.private --permission plugin.config.read --permission plugin.config.write --permission command.register --permission notification.publish --permission notification.agent --permission media.artifact.create
+yuki plugin enable github-monitor
+yuki plugin doctor github-monitor
 ```
 
-### 3. 批准并启用插件
+批准的九项权限与 `plugin.toml` 一致。权限分别用于后台轮询、GitHub 只读 HTTP、插件私有状态、配置读写、命令注册、确定性通知、可选 Agent 任务和卡片媒体。仅启用所需并已审阅的权限；更新后若 Host 要求重新批准，按实际 Manifest 批准。
 
-在 QQ 中由超级管理员执行：
+## 添加订阅
+
+命令由 Host 的 Person 超级管理员执行。`target_id` 使用 **内部 Space / Person ID**，不接受 QQ / TG 群号或账号来代替人物身份：
 
 ```text
-/ai admin plugin show github-monitor
-/ai admin plugin approve github-monitor
-/ai admin plugin enable github-monitor
+/github add owner/repo group:<Space-ID>
+/github add owner/repo private:<Person-ID>
 ```
 
-也可以在仓库根目录执行：
-
-```bash
-docker compose exec -u 10001:10001 bot yuki plugin inspect github-monitor
-docker compose exec -u 10001:10001 bot yuki plugin approve github-monitor --permission background.worker --permission network.http.allowlisted --permission storage.private --permission plugin.config.read --permission plugin.config.write --permission command.register --permission notification.publish --permission notification.agent --permission media.artifact.create
-docker compose exec -u 10001:10001 bot yuki plugin enable github-monitor
-```
-
-正常状态应为 `running`，且 `failure_count` 为 `0`。插件源码或 Manifest 发生变化时，Host
-可能要求重新批准。
-
-### 4. 添加仓库
-
-向群 `1049765710` 推送：
+同一仓库可添加多个目标。群 topic 或同一人物的多个私聊入口可显式指定原 Conversation：
 
 ```text
-/github add YuanYeYouTao/Yuki-QQbot group:1049765710
+/github add owner/repo group:<Space-ID>:conversation:<Conversation-ID>
+/github add owner/repo private:<Person-ID>:conversation:<Conversation-ID>
 ```
 
-向 QQ `2186567848` 私聊推送：
+省略 Conversation 时，Host 使用当前或唯一真实入口；有多个候选时需明确选择。Host 决定平台和物理路由，插件不另存 QQ / TG 发送链。已入队请求保持原入口、来源和回执。
 
-```text
-/github add YuanYeYouTao/Yuki-QQbot private:2186567848
-```
-
-同一仓库可以重复执行 `add` 来增加不同目标；相同目标不会重复添加。默认首次轮询只记录当前
-最新事件作为基线，并发送“监控已启用”，以后只推送新事件。
-
-如果没有配置 `/github` 直达绑定，把命令写成：
-
-```text
-/ai plugin run github-monitor github add YuanYeYouTao/Yuki-QQbot group:1049765710
-```
-
-## 命令手册
-
-所有管理命令只允许真实 `SUPERUSERS` 使用。
+## 命令
 
 | 命令 | 作用 |
-|---|---|
-| `/github status` | 查看仓库数量、轮询状态、连续失败和 Outbox 状态 |
-| `/github repos` | 列出仓库、启停状态和全部 QQ 投递目标 |
-| `/github add owner/repo group:<Space-ID>` | 添加群聊目标 |
+| --- | --- |
+| `/github status` | 仓库、轮询、失败、限额和 Outbox 状态 |
+| `/github repos` | 仓库、启停状态和目标 |
+| `/github add owner/repo group:<Space-ID>` | 添加群目标 |
 | `/github add owner/repo private:<Person-ID>` | 添加私聊目标 |
-| `/github remove owner/repo group:<Space-ID>` | 移除群聊目标 |
+| `/github remove owner/repo group:<Space-ID>` | 移除群目标 |
 | `/github remove owner/repo private:<Person-ID>` | 移除私聊目标 |
-| `/github pause owner/repo` | 暂停仓库轮询，保留配置和 cursor |
-| `/github resume owner/repo` | 恢复仓库轮询 |
-| `/github sync owner/repo baseline` | 清除旧 cursor，按当前最新事件重新建立基线 |
-| `/github sync owner/repo replay_recent` | 清除旧 cursor，并回放最近若干条事件 |
-| `/github test owner/repo` | 发送本地合成 Push 通知，不调用 GitHub、不推进真实 cursor |
-| `/github events owner/repo` | 查看该仓库当前允许的事件类型 |
-| `/github rate-limit` | 查看最近一次轮询记录的 GitHub Rate Limit 信息 |
-| `/github outbox` | 查看通知 Outbox 与后台点评任务状态 |
+| `/github pause owner/repo` | 暂停轮询和队列排空，保留原状态 |
+| `/github resume owner/repo` | 恢复轮询和排空 |
+| `/github sync owner/repo baseline` | 显式重新建立当前基线 |
+| `/github sync owner/repo replay_recent` | 显式回放最近事件 |
+| `/github test owner/repo` | 发送本地合成 Push 通知，不访问 GitHub、不推进真实游标 |
+| `/github events owner/repo` | 当前允许的事件类型 |
+| `/github rate-limit` | 最近 GitHub API 限额 |
+| `/github outbox` | 通知与后台任务状态 |
 
-`sync replay_recent` 会产生真实通知，`test` 也会真实发送合成通知，执行前核对已授权测试目标；日常排障先读取 `status`、`outbox` 和停写 doctor，不用回放代替诊断。
-`pause` 同时停止 ingest 与 drain；`sync` 在 pending/inflight 未排空、存在 gap 或 rebaseline 进行中时
-失败关闭，不会删除队列追赶最新事件。
+`test` 和 `replay_recent` 都会发送真实通知。日常排障使用 `status`、`outbox` 和只读观察。`sync` 在原队列未完成或存在 gap 时保留原事实，不删除旧请求追赶新事件。
 
-## 默认配置
+## 配置与观察
 
-| 配置 | 默认值 | 范围与含义 |
-|---|---:|---|
-| `poll_interval_seconds` | `60` | 30–3600 秒；所有已启用仓库的轮询周期 |
-| `initial_sync_mode` | `baseline` | `baseline` 或 `replay_recent` |
-| `replay_recent_limit` | `5` | 回放最近 1–20 条事件 |
-| `events_per_repository` | `100` | GitHub 每页读取 1–100 条 |
-| `max_events_per_poll` | `50` | 单仓库每次队列排空最多发布 1–200 条；已有积压每秒继续排空一轮 |
-| `coalesce` | `true` | 是否合并尚未 seal 的安全相邻事件；关闭后按单例排空 |
-| `request_timeout_seconds` | `20` | 单次请求 3–60 秒 |
+Host 使用插件注册的配置 schema：
 
-每个仓库订阅还支持以下过滤项：
+```bash
+yuki plugin configuration github-monitor
+yuki plugin configure github-monitor config.json --revision <原版本>
+yuki plugin observe github-monitor --limit 10
+```
 
-- `event_types`：允许的 GitHub 事件类型。
-- `branches`：只接收指定 Push 分支；空集合表示不限制。
-- `ignored_actors`：忽略指定 GitHub 用户。
-- `ignore_bots`：默认忽略 Bot 账号。
-- `ignore_draft_pull_requests`：是否忽略 Draft PR。
-- `default_branch_only`：是否只接收默认分支 Push。
-- 每个目标可分别控制 `send_text`、`send_card` 和 `ask_agent`。
+`config.json` 格式为 `{"scope_type":"global","owner_id":null,"values":{...}}`；先读当前配置和 revision，再按 schema 修改。`observe` 只读本地队列、游标、诊断和 Host 通知状态，不访问 GitHub，也不返回已准备通知的正文。
 
-这些结构化配置由 `GitHubMonitorConfig` 校验并保存在插件隔离配置表中，不应直接修改 SQLite。
+| 配置 | 默认值 | 含义 |
+| --- | --- | --- |
+| `repositories` | `[]` | 仓库订阅及每个目标的策略 |
+| `poll_interval_seconds` | `60` | GitHub 轮询间隔 |
+| `max_events_per_poll` | `50` | 每轮队列处理量 |
+| `coalesce` | `true` | 合并可合批的相邻 Create / Delete / Watch / Fork |
+| `request_timeout_seconds` | `20` | GitHub HTTP 超时 |
 
-## 通知行为
+完整字段、默认值和校验以 [`github_monitor/config.py`](github_monitor/config.py) 的 `GitHubMonitorConfig` / `RepositorySubscription` 为准。订阅可过滤事件类型、分支、Actor、Bot、Draft PR；每个目标分别设置 `send_text`、`send_card`、`ask_agent`。
 
-Push 通知包含：
+## 队列与回执
 
-- 仓库、Actor、分支和北京时间。
-- 提交数、变更文件数、新增行和删除行。
-- 最多四条提交摘要；其余提交以数量提示。
-- 使用容器内开源中文字体渲染的本地 PNG，不加载远程图片或字体。
+GitHub event ID、accepted / committed cursor、原始事件指纹、pending / inflight 和原目标快照保存在 Host 的插件状态中。队列严格按原事件顺序处理，相邻合批不改变原成员 ID。
 
-Release 通知包含仓库、发布者、版本标签、正式版/预发布状态、目标分支、附件数量和最多三行发布
-说明。其他事件发送中文文本摘要。启用 `ask_agent` 后，Host 为该通知建立独立、有 generation 与
-授权 freshness 围栏的后台 turn。Agent 按原工作和订阅要求处理事件，默认可静默查证和更新资料；
-有重要补充、约定反馈或需要用户决定时再发言，避免重复通知卡片。通知不会伪装成普通会话 system 消息。常规聊天不自动附加旧外部事件摘要。外部文本不能给 Agent 授权，也不能要求它修改记忆、
-自动化、配置或调用其他工具。
+准备好的请求在首次发送前冻结目标、正文、媒体、Agent intent 和幂等键。首次尝试后恢复同一请求；媒体过期或当前订阅变化不会抢在原 Host 回执之前拒绝恢复。结果不确定的发送保留 `uncertain`，不盲目重发。`yuki plugin retry-outbox` 也沿 Host 的原回执规则处理。
 
-合批只发生在 pending FIFO 的相邻前缀：Create/Delete 还要求 actor、`ref_type` 和目标策略快照
-完全兼容；Watch/Fork 要求类型与目标快照一致。批次不生成卡片，payload 保留全部 source event ID
-并在 seal 前验证 Host 32 KiB 上限。`coalesce=false` 不会改写已经 seal 的批次。
+GitHub 客户端只读取 `api.github.com`。401 表示 Token 无效；403 / 429 按权限和限额处理。卡片只用本地字体与图形，不下载远程图片或字体。Agent 任务经 Host 的统一后台执行入口运行。
 
-已接纳的 pending/inflight 队列按每步上限逐秒排空，无需等下一次 GitHub 轮询；
-`poll_interval_seconds` 仍控制 GitHub API 请求周期。排空停止或无进展时不会空转重试。
+## 离线队列 doctor
 
-## 可靠性与安全边界
+doctor 读取 Host 数据库中的队列与通知计数。先停止 Bot 和其他写库 worker，明确传入实际数据库 URL；相对路径按 **当前工作目录** 解析，不读取 Host `.env`、不导入 Host 配置类：
 
-- GitHub 客户端只允许访问 `api.github.com`，只发起读取请求。
-- Token 由 Host 在 HTTP 请求阶段注入，插件拿不到可枚举的 Secret 集合。
-- Host 对完整请求做幂等校验；同一 key 下 target、payload、text、Agent intent 或媒体身份不一致会
-  失败关闭，而不是复用旧结果。
-- 首次基线、accepted/committed cursor、payload fingerprint、pending/inflight、目标快照、ETag、
-  Last-Modified、失败次数和 Rate Limit 会持久保存。
-- 消费严格 oldest-first；cursor 缺口、同 ID 不同 payload、非数字 ID 和媒体过期进入 doctor gap，
-  不会跳过旧事件追赶最新事件。
-- 多目标请求在首次 attempt 前可以因当前配置收紧而 skipped；attempting 后只允许字节等价重试，
-  已成功目标不会再次发送。
-- 从旧 cursor 导入时固化 legacy key boundary；边界以内已发布事件继续使用旧 key，新事件使用
-  `github:<repo>:event:<id>`，不会改写 Host 中已有幂等身份。
-- 401 会记为 Token 无效；403/429 会按权限或限流分类并退避；低额度时会主动暂停。
-- Outbox 发送结果不确定时标记为 `uncertain`，不会冒险自动重复发送。
-- 删除最后一个 QQ 目标时，会同步撤销该目标授权并取消尚未发送的关联任务。
+```bash
+uv run python doctor.py --database-url sqlite+aiosqlite:////absolute/path/to/qq_ai_bot.db
+```
 
-## 停写队列 doctor
-
-版本升级或故障预演时，先停止 Bot 和所有写库 worker，再在 Compose 挂载的真实插件
-目录上执行：
+Compose 环境沿原挂载运行，并用实际数据库路径替换示例：
 
 ```bash
 docker compose run --rm --no-deps --entrypoint python bot \
-  /app/plugins/github-monitor/doctor.py
+  /app/plugins/github-monitor/doctor.py \
+  --database-url sqlite+aiosqlite:////app/data/qq_ai_bot.db
 ```
 
-它不启动插件、不访问 GitHub、不发通知，只输出无正文计数。若从 1.1.0 队列首次升级，
-可在同样的停写条件下显式导入：
+普通检查使用 SQLite `mode=ro`，路径不存在时不会创建空库，只输出无正文计数。若从旧队列首次导入，可在同样停写条件下显式加 `--apply-legacy-import`；只在新 queue 缺失时写入确定性导入结果，保留旧行、游标和通知身份。
+
+非零退出码表示报告中仍有待处理事项，需结合原队列和回执处理；它不是要求取消所有未完成工作的升级门槛。Host 的 `yuki plugin doctor github-monitor` 检查安装状态，与此停写队列诊断用途不同。
+
+## 独立开发与验证
 
 ```bash
-docker compose run --rm --no-deps --entrypoint python bot \
-  /app/plugins/github-monitor/doctor.py --apply-legacy-import
+uv sync --frozen --group dev
+uv run ruff check .
+uv run ruff format --check .
+uv run pytest -q
+uv run python doctor.py --help
 ```
 
-导入只会在新 queue 不存在时以一个 `BEGIN IMMEDIATE` 事务写入确定性状态；不删除
-legacy 行、不推进 cursor、不 rebaseline。只读检查使用 SQLite `mode=ro`，不会因误配路径创建空库。
-任一 invalid/legacy-shadow state、未完成 activation、pending/inflight、gap、CAS/receipt conflict、
-活动诊断、媒体过期或 Host pending 都会返回非零，禁止恢复流量。普通
-`yuki plugin doctor github-monitor` 只检查安装与 Manifest，不能替代这个队列
-doctor。
+当前 SDK 6.0 随 `yuki` 分发，本仓库 dev 依赖固定到 Yuki `9031f25a8707e1e0ccdf98611b14632a8f1c2ca2` 源码归档，由 `uv.lock` 锁定；不复制 SDK、不引用父目录或本机 Host 源码。运行时使用实际 Host 提供的 SDK。CI 在干净环境安装同一依赖；pytest 包含公开 SDK 的完整加载、注册、启动、停止契约测试，不需要 Host 人格或数据库配置。测试使用 SDK Fake Host，不需要 Token，不调用真实 GitHub、模型或聊天发送。
 
-## 端到端测试
+## 许可证
 
-```text
-/github status
-/github repos
-/github test YuanYeYouTao/Yuki-QQbot
-/github outbox
-```
-
-测试成功时，目标会收到中文 Push 摘要和 PNG 卡片；`ask_agent=true` 会安排 Yuki 处理该事件，
-是否补充发言由实际任务和信息价值决定。`test` 不访问 GitHub，因此 Token 和真实轮询需要结合 `status` 中的“上次成功”与
-`rate-limit` 再确认。
-
-## 常见问题
-
-### 插件当前未运行
-
-依次执行：
-
-```text
-/ai admin plugin show github-monitor
-/ai admin plugin doctor github-monitor
-/ai admin plugin approve github-monitor
-/ai admin plugin enable github-monitor
-```
-
-确认 `.env` 中 `PLUGIN_SYSTEM_ENABLED=true`，再只重建 Bot。
-
-### 添加成功，但没有补发旧事件
-
-这是 `baseline` 的预期行为。使用 `/github test owner/repo` 测试投递；只有明确需要回放时才用
-`/github sync owner/repo replay_recent`。
-
-### 401、403 或 404
-
-- 401：Token 无效或已撤销，重新生成并替换 `.env` 中的 Secret。
-- 403：Token 权限不足或 GitHub API 已限流，查看 `/github rate-limit`。
-- 404：仓库名错误，或 Token 无权看到该私有仓库。
-
-### 卡片中文显示为方框
-
-当前 Bot 镜像已安装文泉驿微米黑。按版本部署文档替换 Bot 镜像，不要只重启旧镜像。
-
-### 通知失败或重复
-
-使用 `/github outbox` 查看 `pending`、`failed` 和 `uncertain`。不要通过重置数据库解决；稳定
-幂等键、cursor 和 Outbox 会负责正常重试与去重。
-
-## 开发验证
-
-使用 `yuki plugin configuration` 读取配置，`plugin configure` 按原 revision
-保存；使用 `plugin observe` 查看仓库 queue/cursor/诊断及 Host 通知 outbox。配置来自已批准
-注册的 schema，修改保存原 Host 配置表，插件按自身读取逻辑生效。只读状态使用 SDK 的
-`observe`，不访问 GitHub、不轮询或封口，不返回 prepared 通知内容。队列未建立或状态损坏
-会明确显示，不当作零。
-
-`plugin retry-outbox` 复用原 Host 管理入口，仅允许确认未发送、有原内部归属和剩余预算的失败。
-`uncertain`、有平台回执或缺少 canonical owner 的旧记录不能重发。配置/状态正文与
-修改能力须在 operator 声明中分别授权；参见[管理 API 与 CLI](../../docs/architecture/admin-api.md)。
-
-```bash
-uv run ruff check plugins/github-monitor
-uv run pytest -q plugins/github-monitor/tests
-uv run yuki plugin test plugins/github-monitor
-```
-
-插件契约测试使用 Fake Host，不需要真实 GitHub Token，也不会访问网络。
-
-## Plugin API 6.0 的通知目标
-
-`target_id` 是内部 Person/Space，不是 QQ/TG 外部账号或群号。目标可带 `conversation_id` 指定原私聊 Bot 或群 topic；短命令也接受 `group:<Space-ID>:conversation:<Conversation-ID>` / `private:<Person-ID>:conversation:<Conversation-ID>`。未指定时仅接受当前或唯一真实入口，保存 Host 返回的 Conversation；有多个入口时显式选择。已有排队事件保留原来源、游标和回执，迁移不会重发已接纳通知。
+AGPL-3.0-only。原始版权与来源见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。

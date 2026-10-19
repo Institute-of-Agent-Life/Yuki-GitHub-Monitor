@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pydantic import ValidationError
-
 from yuki_plugin_sdk.observation import (
     JsonObject,
     PluginObservationContext,

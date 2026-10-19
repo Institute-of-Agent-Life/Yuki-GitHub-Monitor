@@ -8,7 +8,6 @@ from datetime import UTC, datetime
 from typing import Literal, Self
 
 from pydantic import Field, field_validator, model_validator
-
 from yuki_plugin_sdk.models import JsonValue, StrictModel
 
 
