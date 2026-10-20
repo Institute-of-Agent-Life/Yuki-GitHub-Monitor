@@ -930,7 +930,7 @@ wheels = [
 [[package]]
 name = "yuki"
 version = "3.9.0"
-source = { url = "https://github.com/YuanYeYouTao/Yuki/archive/9031f25a8707e1e0ccdf98611b14632a8f1c2ca2.tar.gz" }
+source = { url = "https://github.com/YuanYeYouTao/Yuki/archive/ed1615e145daf75bcc002762a27e93f7ebfa818b.tar.gz" }
 dependencies = [
     { name = "agent-client-protocol" },
     { name = "aiosqlite" },
@@ -946,13 +946,14 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pypdf" },
     { name = "python-dotenv" },
+    { name = "referencing" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "tenacity" },
     { name = "tomlkit" },
     { name = "tzdata" },
     { name = "yuki-semantic-participation" },
 ]
-sdist = { hash = "sha256:eb606a80565161763481b3b8d5bfcb69880179d8ed7c3071d9adb2e807d92355" }
+sdist = { hash = "sha256:3ddfb55b4ab58ecc61485a3d71f96aa2ad09d28f23b233903f018788692dda20" }
 
 [package.metadata]
 requires-dist = [
@@ -973,6 +974,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3,<9" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.24,<1" },
     { name = "python-dotenv", specifier = ">=1,<2" },
+    { name = "referencing", specifier = ">=0.35,<1" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8,<1" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0.36,<3" },
     { name = "tenacity", specifier = ">=9,<10" },
@@ -981,13 +983,13 @@ requires-dist = [
     { name = "types-defusedxml", marker = "extra == 'dev'", specifier = ">=0.7,<1" },
     { name = "types-jsonschema", marker = "extra == 'dev'", specifier = ">=4.23,<5" },
     { name = "tzdata", specifier = ">=2025.2" },
-    { name = "yuki-semantic-participation", url = "https://github.com/YuanYeYouTao/Yuki-Semantic-Participation/archive/31d76872320ed8e04fdad70c89f0149d3c9ae3ac.tar.gz" },
+    { name = "yuki-semantic-participation", url = "https://github.com/Institute-of-Agent-Life/Yuki-Semantic-Participation/archive/31d76872320ed8e04fdad70c89f0149d3c9ae3ac.tar.gz" },
 ]
 provides-extras = ["dev"]
 
 [[package]]
 name = "yuki-github-monitor"
-version = "1.2.0"
+version = "1.2.1"
 source = { virtual = "." }
 dependencies = [
     { name = "pillow" },
@@ -1015,13 +1017,13 @@ dev = [
     { name = "pytest", specifier = ">=8.3,<9" },
     { name = "pytest-asyncio", specifier = ">=0.24,<1" },
     { name = "ruff", specifier = ">=0.8,<1" },
-    { name = "yuki", url = "https://github.com/YuanYeYouTao/Yuki/archive/9031f25a8707e1e0ccdf98611b14632a8f1c2ca2.tar.gz" },
+    { name = "yuki", url = "https://github.com/YuanYeYouTao/Yuki/archive/ed1615e145daf75bcc002762a27e93f7ebfa818b.tar.gz" },
 ]
 
 [[package]]
 name = "yuki-semantic-participation"
 version = "0.1.0"
-source = { url = "https://github.com/YuanYeYouTao/Yuki-Semantic-Participation/archive/31d76872320ed8e04fdad70c89f0149d3c9ae3ac.tar.gz" }
+source = { url = "https://github.com/Institute-of-Agent-Life/Yuki-Semantic-Participation/archive/31d76872320ed8e04fdad70c89f0149d3c9ae3ac.tar.gz" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
