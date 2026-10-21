@@ -5,7 +5,7 @@ description = "Monitor GitHub repositories and publish events into Yuki conversa
 entrypoint = "github_monitor:GitHubMonitorPlugin"
 
 plugin_api = "7.0"
-yuki_requires = ">=3.9.0,<4.0"
+yuki_requires = ">=3.9.0"
 
 permissions = [
   "background.worker",
