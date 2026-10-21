@@ -15,7 +15,7 @@ Yuki 的 GitHub 仓库监控插件。定时读取仓库事件，把中文摘要�
 
 ## 运行要求
 
-- Python 3.12，Yuki `>=3.9.0,<4.0`，Plugin API `7.0`。
+- Python 3.12，Yuki `>=3.9.0`，由 Host 提供 Plugin API `7.0` 或同 major 的后续增量合同。
 - Host 可以访问 `api.github.com`，并提供 Pillow、时区资料和中文字体。Yuki 镜像已包含这些依赖。
 - 公开仓库可匿名读取。私有仓库需要可读取目标仓库的 GitHub Token；推荐 Fine-grained Token，仅授权所需仓库的 Metadata / Contents 读取权限。
 
