@@ -15,7 +15,7 @@ Yuki 的 GitHub 仓库监控插件。定时读取仓库事件，把中文摘要�
 
 ## 运行要求
 
-- Python 3.12，Yuki `>=3.9.0`，由 Host 提供 Plugin API `7.0` 或同 major 的后续增量合同。
+- Python 3.12，Yuki `>=4.0.0`，由 Host 提供 Plugin API `8.0` 或同 major 的后续增量合同。
 - Host 可以访问 `api.github.com`，并提供 Pillow、时区资料和中文字体。Yuki 镜像已包含这些依赖。
 - 公开仓库可匿名读取。私有仓库需要可读取目标仓库的 GitHub Token；推荐 Fine-grained Token，仅授权所需仓库的 Metadata / Contents 读取权限。
 
@@ -163,7 +163,7 @@ uv run pytest -q
 uv run python doctor.py --help
 ```
 
-当前 SDK 7.0 随 `yuki` 分发，本仓库 dev 依赖固定到 Yuki `ed1615e145daf75bcc002762a27e93f7ebfa818b` 源码归档，由 `uv.lock` 锁定；不复制 SDK、不引用父目录或本机 Host 源码。运行时使用实际 Host 提供的 SDK。CI 在干净环境安装同一依赖；pytest 包含公开 SDK 的完整加载、注册、启动、停止契约测试，不需要 Host 人格或数据库配置。测试使用 SDK Fake Host，不需要 Token，不调用真实 GitHub、模型或聊天发送。
+当前 SDK 8.0 随 `yuki` 分发，本仓库 dev 依赖固定到 Yuki `0ee2331003821f7d7ff9225a9d882f9f822dfde8` 源码归档，由 `uv.lock` 锁定；不复制 SDK、不引用父目录或本机 Host 源码。运行时使用实际 Host 提供的 SDK。CI 在干净环境安装同一依赖；pytest 包含公开 SDK 的完整加载、注册、启动、停止契约测试，不需要 Host 人格或数据库配置。测试使用 SDK Fake Host，不需要 Token，不调用真实 GitHub、模型或聊天发送。
 
 ## 许可证
 

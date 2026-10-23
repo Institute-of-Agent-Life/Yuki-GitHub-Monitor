@@ -1,11 +1,11 @@
 id = "github-monitor"
 name = "GitHub Monitor"
-version = "1.2.1"
+version = "1.2.2"
 description = "Monitor GitHub repositories and publish events into Yuki conversations."
 entrypoint = "github_monitor:GitHubMonitorPlugin"
 
-plugin_api = "7.0"
-yuki_requires = ">=3.9.0"
+plugin_api = "8.0"
+yuki_requires = ">=4.0.0"
 
 permissions = [
   "background.worker",
