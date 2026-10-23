@@ -163,7 +163,7 @@ uv run pytest -q
 uv run python doctor.py --help
 ```
 
-当前 SDK 8.0 随 `yuki` 分发，本仓库 dev 依赖固定到 Yuki `0ee2331003821f7d7ff9225a9d882f9f822dfde8` 源码归档，由 `uv.lock` 锁定；不复制 SDK、不引用父目录或本机 Host 源码。运行时使用实际 Host 提供的 SDK。CI 在干净环境安装同一依赖；pytest 包含公开 SDK 的完整加载、注册、启动、停止契约测试，不需要 Host 人格或数据库配置。测试使用 SDK Fake Host，不需要 Token，不调用真实 GitHub、模型或聊天发送。
+当前 SDK 8.0 随 `yuki` 分发，本仓库 dev 依赖固定到 Yuki `5592997c7bdc54cd907d65908eb1c508f987cafe` 源码归档，由 `uv.lock` 锁定；不复制 SDK、不引用父目录或本机 Host 源码。运行时使用实际 Host 提供的 SDK。CI 在干净环境安装同一依赖；pytest 包含公开 SDK 的完整加载、注册、启动、停止契约测试，不需要 Host 人格或数据库配置。测试使用 SDK Fake Host，不需要 Token，不调用真实 GitHub、模型或聊天发送。
 
 ## 许可证
 
