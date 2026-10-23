@@ -6,7 +6,7 @@ from pathlib import Path
 from yuki_plugin_sdk.testing.contract import run_plugin_contract_tests
 
 
-async def test_plugin_api_seven_lifecycle(tmp_path):
+async def test_plugin_api_eight_lifecycle(tmp_path):
     root = Path(__file__).parents[1]
     installed = tmp_path / "github-monitor"
     shutil.copytree(root / "github_monitor", installed / "github_monitor")
