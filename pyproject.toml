@@ -1,7 +1,7 @@
 [project]
 name = "yuki-github-monitor"
-version = "1.2.2"
-description = "GitHub repository notifications for Yuki Plugin API 8.0"
+version = "1.2.3"
+description = "GitHub repository notifications for Yuki Plugin API 9.0"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 license = "AGPL-3.0-only"
@@ -21,7 +21,7 @@ package = false
 
 [dependency-groups]
 dev = [
-    "yuki @ https://github.com/YuanYeYouTao/Yuki/archive/5592997c7bdc54cd907d65908eb1c508f987cafe.tar.gz",
+    "yuki @ https://github.com/YuanYeYouTao/Yuki/archive/8720d929057cb91290c911d09b282bcd8fa7e394.tar.gz",
     "pytest>=8.3,<9",
     "pytest-asyncio>=0.24,<1",
     "ruff>=0.8,<1",
