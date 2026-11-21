@@ -43,11 +43,10 @@ Token 继续保存在 Host Secret 配置中，不放入上述源码目录。
 
 ```dotenv
 PLUGIN_SYSTEM_ENABLED=true
-PLUGIN_DIRECT_COMMAND_BINDINGS={"/github":"github-monitor:github"}
 YUKI_PLUGIN__GITHUB_MONITOR__GITHUB_TOKEN=github_pat_replace_with_your_token
 ```
 
-Token 可省略。已有直达命令时，将 `/github` 合并进原 JSON。真实 Token 由 Host Secret 通道提供，不存入本仓库、插件普通配置或聊天消息。
+Token 可省略。以下使用标准插件命令入口；如需可选的 `/github` 直达命令，须另行配置 `PLUGIN_DIRECT_COMMAND_BINDINGS={"/github":"github-monitor:github"}`。真实 Token 由 Host Secret 通道提供，不存入本仓库、插件普通配置或聊天消息。
 
 更新环境或挂载后，按 Host 部署流程只重启 Bot，再执行在线管理命令。
 
@@ -69,15 +68,15 @@ yuki plugin doctor github-monitor
 命令由 Host 的 Person 超级管理员执行。`target_id` 使用 **内部 Space / Person ID**，不接受 QQ / TG 群号或账号来代替人物身份：
 
 ```text
-/github add owner/repo group:<Space-ID>
-/github add owner/repo private:<Person-ID>
+/ai plugin run github-monitor github add owner/repo group:<Space-ID>
+/ai plugin run github-monitor github add owner/repo private:<Person-ID>
 ```
 
 同一仓库可添加多个目标。群 topic 或同一人物的多个私聊入口可显式指定原 Conversation：
 
 ```text
-/github add owner/repo group:<Space-ID>:conversation:<Conversation-ID>
-/github add owner/repo private:<Person-ID>:conversation:<Conversation-ID>
+/ai plugin run github-monitor github add owner/repo group:<Space-ID>:conversation:<Conversation-ID>
+/ai plugin run github-monitor github add owner/repo private:<Person-ID>:conversation:<Conversation-ID>
 ```
 
 省略 Conversation 时，Host 使用当前或唯一真实入口；有多个候选时需明确选择。Host 决定平台和物理路由，插件不另存 QQ / TG 发送链。已入队请求保持原入口、来源和回执。
@@ -86,20 +85,20 @@ yuki plugin doctor github-monitor
 
 | 命令 | 作用 |
 | --- | --- |
-| `/github status` | 仓库、轮询、失败、限额和 Outbox 状态 |
-| `/github repos` | 仓库、启停状态和目标 |
-| `/github add owner/repo group:<Space-ID>` | 添加群目标 |
-| `/github add owner/repo private:<Person-ID>` | 添加私聊目标 |
-| `/github remove owner/repo group:<Space-ID>` | 移除群目标 |
-| `/github remove owner/repo private:<Person-ID>` | 移除私聊目标 |
-| `/github pause owner/repo` | 暂停轮询和队列排空，保留原状态 |
-| `/github resume owner/repo` | 恢复轮询和排空 |
-| `/github sync owner/repo baseline` | 显式重新建立当前基线 |
-| `/github sync owner/repo replay_recent` | 显式回放最近事件 |
-| `/github test owner/repo` | 发送本地合成 Push 通知，不访问 GitHub、不推进真实游标 |
-| `/github events owner/repo` | 当前允许的事件类型 |
-| `/github rate-limit` | 最近 GitHub API 限额 |
-| `/github outbox` | 通知与后台任务状态 |
+| `/ai plugin run github-monitor github status` | 仓库、轮询、失败、限额和 Outbox 状态 |
+| `/ai plugin run github-monitor github repos` | 仓库、启停状态和目标 |
+| `/ai plugin run github-monitor github add owner/repo group:<Space-ID>` | 添加群目标 |
+| `/ai plugin run github-monitor github add owner/repo private:<Person-ID>` | 添加私聊目标 |
+| `/ai plugin run github-monitor github remove owner/repo group:<Space-ID>` | 移除群目标 |
+| `/ai plugin run github-monitor github remove owner/repo private:<Person-ID>` | 移除私聊目标 |
+| `/ai plugin run github-monitor github pause owner/repo` | 暂停轮询和队列排空，保留原状态 |
+| `/ai plugin run github-monitor github resume owner/repo` | 恢复轮询和排空 |
+| `/ai plugin run github-monitor github sync owner/repo baseline` | 显式重新建立当前基线 |
+| `/ai plugin run github-monitor github sync owner/repo replay_recent` | 显式回放最近事件 |
+| `/ai plugin run github-monitor github test owner/repo` | 发送本地合成 Push 通知，不访问 GitHub、不推进真实游标 |
+| `/ai plugin run github-monitor github events owner/repo` | 当前允许的事件类型 |
+| `/ai plugin run github-monitor github rate-limit` | 最近 GitHub API 限额 |
+| `/ai plugin run github-monitor github outbox` | 通知与后台任务状态 |
 
 `test` 和 `replay_recent` 都会发送真实通知。日常排障使用 `status`、`outbox` 和只读观察。`sync` 在原队列未完成或存在 gap 时保留原事实，不删除旧请求追赶新事件。
 
